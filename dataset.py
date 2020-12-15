@@ -2,6 +2,7 @@ import pandas as pd
 import re
 import csv
 from nltk.stem.porter import PorterStemmer
+from nltk.corpus import stopwords
 
 class Dataset:
     def __init__(self, isTrainfile=True, file_name='./airline_sentiment_analysis.csv'):
@@ -9,6 +10,7 @@ class Dataset:
         self.data = None
         print(self.raw_data)
         self.isTrainFile = isTrainfile
+        self.stop_words = stopwords.words('english')
         self.porter_stemmer = PorterStemmer()
 
     def is_valid_word(self, word):
@@ -17,6 +19,22 @@ class Dataset:
 
     def preprocess(self):
         replace = [
+            # Convert more than 2 letter repetitions to 2 letter funnnnny --> funny
+            [r'(.)\1+', r'\1\1'],
+            # Replaces URLs with the word URL
+            [r'((www\.[\S]+)|(https?://[\S]+))', ' URL '],
+            [r'http*', ' URL '],
+            # Replace username
+            [r'@[\S]+', 'USER_MENTION'],
+            # Replace 2+ dots with space
+            [r'\.{2,}', ' '],
+            # handle emojis
+            [r'(:\s?\)|:-\)|\(\s?:|\(-:|:\'\))', ' EMO_POS '],  # Smile -- :), : ), :-), (:, ( :, (-:, :')
+            [r'(:\s?D|:-D|x-?D|X-?D)', ' EMO_POS '],  # Laugh -- :D, : D, :-D, xD, x-D, XD, X-D
+            [r'(<3|:\*)', ' EMO_POS '],  # Love -- <3, :*
+            [r'(;-?\)|;-?D|\(-?;)', ' EMO_POS '],  # Wink -- ;-), ;), ;-D, ;D, (;,  (-;
+            [r'(:\s?\(|:-\(|\)\s?:|\)-:)', ' EMO_NEG '],  # Sad -- :-(, : (, :(, ):, )-:
+            [r'(:,\(|:\'\(|:"\()', ' EMO_NEG '],  # Cry -- :,(, :'(, :"(
             [r"i'm", "i am"],
             [r"he's", "he is"],
             [r"she's", "she is"],
@@ -36,23 +54,8 @@ class Dataset:
             [r"n'", "ng"],
             [r"'bout", "about"],
             [r"'til", "until"],
-            # handle emojis
-            [r'(:\s?\)|:-\)|\(\s?:|\(-:|:\'\))', ' EMO_POS '],  # Smile -- :), : ), :-), (:, ( :, (-:, :')
-            [r'(:\s?D|:-D|x-?D|X-?D)', ' EMO_POS '],  # Laugh -- :D, : D, :-D, xD, x-D, XD, X-D
-            [r'(<3|:\*)', ' EMO_POS '],  # Love -- <3, :*
-            [r'(;-?\)|;-?D|\(-?;)', ' EMO_POS '],  # Wink -- ;-), ;), ;-D, ;D, (;,  (-;
-            [r'(:\s?\(|:-\(|\)\s?:|\)-:)', ' EMO_NEG '],  # Sad -- :-(, : (, :(, ):, )-:
-            [r'(:,\(|:\'\(|:"\()', ' EMO_NEG '],  # Cry -- :,(, :'(, :"(
             # remove spacial characters
-            [r"[-_'()\"#/@;:<>{}`+=~|.!?,]", ""],
-            # Convert more than 2 letter repetitions to 2 letter funnnnny --> funny
-            [r'(.)\1+', r'\1\1'],
-            # Replaces URLs with the word URL
-            [r'((www\.[\S]+)|(https?://[\S]+))', ' URL '],
-            # Replace username
-            [r'@[\S]+', 'USER_MENTION'],
-            # Replace 2+ dots with space
-            [r'\.{2,}', ' ']
+            [r"[-_'()\"#/@;:<>{}`+=~|.!?,]", ""]
         ]
 
 
@@ -70,7 +73,7 @@ class Dataset:
             text = text.split()
             processed_text = []
             for word in text:
-                if self.is_valid_word(word):
+                if self.is_valid_word(word) and word not in self.stop_words :  # remove invalid word and stop words
                     word = str(self.porter_stemmer.stem(word))
                     processed_text.append(word)
             if self.isTrainFile:
