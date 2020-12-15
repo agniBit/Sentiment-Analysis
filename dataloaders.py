@@ -1,6 +1,6 @@
 import numpy as np
-from torch import device, tensor
-from transformers import BertTokenizer, get_linear_schedule_with_warmup, BertForSequenceClassification, AdamW, BertConfig
+from torch import tensor
+from transformers import BertTokenizer
 from keras.preprocessing.sequence import pad_sequences
 from sklearn.model_selection import train_test_split
 from torch.utils.data import TensorDataset, RandomSampler,SequentialSampler, DataLoader

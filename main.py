@@ -1,4 +1,5 @@
-import dataset
+import model
 
-dataset = dataset.Dataset()
-dataset.preprocess()
+model = model.Model()
+
+model.train(epochs=4)
