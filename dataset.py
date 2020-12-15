@@ -6,9 +6,8 @@ from nltk.corpus import stopwords
 
 class Dataset:
     def __init__(self, isTrainfile=True, file_name='./airline_sentiment_analysis.csv'):
-        self.raw_data = pd.read_csv(file_name)
+        self.file_name = file_name
         self.data = None
-        print(self.raw_data)
         self.isTrainFile = isTrainfile
         self.stop_words = stopwords.words('english')
         self.porter_stemmer = PorterStemmer()
@@ -17,7 +16,7 @@ class Dataset:
         # Check if word begins with an alphabet
         return re.search(r'^[a-zA-Z][a-z0-9A-Z\._]*$', word) is not None
 
-    def preprocess(self):
+    def preprocess(self,text):
         replace = [
             # Convert more than 2 letter repetitions to 2 letter funnnnny --> funny
             [r'(.)\1+', r'\1\1'],
@@ -57,37 +56,39 @@ class Dataset:
             # remove spacial characters
             [r"[-_'()\"#/@;:<>{}`+=~|.!?,]", ""]
         ]
+        # convert to lowercase
+        text = text.lower()
+        # Remove firsr username
+        if text[0] == '@': text = text[text.find(' '):]
+        # Remove punctuation
+        text = text.strip('\'"?!,.():;')
+        for r in replace:
+            text = re.sub(r[0], r[1], text)
+        text = text.split()
+        processed_text = []
+        for word in text:
+            if self.is_valid_word(word) and word not in self.stop_words:  # remove invalid word and stop words
+                word = str(self.porter_stemmer.stem(word))
+                processed_text.append(word)
+        return str(' '.join(processed_text))
 
 
+    def preprocess_dataset(self):
+        raw_data = pd.read_csv(self.file_name)
         processed_data = []
-        for i in range(len(self.raw_data['text'])):
-            text = self.raw_data['text'][i]
-            # convert to lowercase
-            text = text.lower()
-            # Remove firsr username
-            if text[0]=='@':text=text[text.find(' '):]
-            # Remove punctuation
-            text = text.strip('\'"?!,.():;')
-            for r in replace:
-                text = re.sub(r[0], r[1], text)
-            text = text.split()
-            processed_text = []
-            for word in text:
-                if self.is_valid_word(word) and word not in self.stop_words :  # remove invalid word and stop words
-                    word = str(self.porter_stemmer.stem(word))
-                    processed_text.append(word)
+        for i in range(len(raw_data['text'])):
+            processed_text = self.preprocess(raw_data['text'][i])
             if self.isTrainFile:
-                lbl = self.raw_data['airline_sentiment'][i].lower()
+                lbl = raw_data['airline_sentiment'][i].lower()
                 if lbl =='negative' or lbl =='positive':
                     data = dict()
-                    data['text'] = str(' '.join(processed_text))
+                    data['text'] = processed_text
                     data['airline_sentiment'] = lbl
                     processed_data.append(data)
             else:
                 data = dict()
-                data['text'] = str(' '.join(processed_text))
+                data['text'] = processed_text
                 processed_data.append(data)
-
         try:
             with open('processed_data.csv', 'w') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=list(data.keys()))
