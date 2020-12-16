@@ -90,28 +90,30 @@ class Model:
 
     def predict(self,text):
         # load model
-        if torch.cuda.is_available():
-            self.model.load_state_dict(torch.load('./model.pth'))
-        else:
-            self.model.load_state_dict(torch.load('./model.pth',map_location='cpu'))
-        self.model.eval()
-        data = dataset.Dataset()
-        text = data.preprocess(text)
-        tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-        input_token_seq = []
-        encoded_text = tokenizer.encode(str(text), add_special_tokens=True)
-        input_token_seq.append(encoded_text)
-        input_token_seq = pad_sequences(input_token_seq, maxlen=self.MAX_LEN, dtype="long",
-                                        value=0, truncating="post", padding="post")
-        attention_masks = []
-        att_mask = [int(token_id > 0) for token_id in input_token_seq[0]]
-        attention_masks.append(att_mask)
-        print(attention_masks)
-        with torch.no_grad():
-            outputs = self.model(torch.tensor(input_token_seq),
-                                 token_type_ids=None,
-                                 attention_mask=torch.tensor(attention_masks)).logits.detach().cpu().numpy()
-        if np.argmax(outputs,axis=1)[0]==1:
-            print('positive')
-        else:
-            print('negative')
+        try:
+            if torch.cuda.is_available():
+                self.model.load_state_dict(torch.load('./model.pth'))
+            else:
+                self.model.load_state_dict(torch.load('./model.pth',map_location='cpu'))
+            self.model.eval()
+            data = dataset.Dataset()
+            text = data.preprocess(text)
+            tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+            input_token_seq = []
+            encoded_text = tokenizer.encode(str(text), add_special_tokens=True)
+            input_token_seq.append(encoded_text)
+            input_token_seq = pad_sequences(input_token_seq, maxlen=self.MAX_LEN, dtype="long",
+                                            value=0, truncating="post", padding="post")
+            attention_masks = []
+            att_mask = [int(token_id > 0) for token_id in input_token_seq[0]]
+            attention_masks.append(att_mask)
+            with torch.no_grad():
+                outputs = self.model(torch.tensor(input_token_seq),
+                                     token_type_ids=None,
+                                     attention_mask=torch.tensor(attention_masks)).logits.detach().cpu().numpy()
+            if np.argmax(outputs,axis=1)[0]==1:
+                return str('positive')
+            else:
+                return str('negative')
+        except:
+            return 'error during predicting'
