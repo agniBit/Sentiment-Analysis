@@ -1,4 +1,3 @@
-import numpy as np
 from torch import tensor
 from transformers import BertTokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -11,22 +10,28 @@ class Dataloaders:
         self.MAX_LEN = MAX_LEN
 
     def load_data_from_csv(self):
+        # read dataset file
         dataset = pd.read_csv('./processed_data.csv')
+        # encode labels
         labels = [0 if t == 'negative' else 1 for t in dataset['airline_sentiment'].values]
         return dataset,labels
 
     def tokenize_and_pad_data(self, dataset):
+        # tokenize text using bert tokenizer
         tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
         input_token_seq = []
         for sent in dataset['text'].values:
             encoded_sent = tokenizer.encode(str(sent), add_special_tokens=True)
             input_token_seq.append(encoded_sent)
+        # add padding at end of text for fixed length input
         input_token_seq = pad_sequences(input_token_seq, maxlen=self.MAX_LEN, dtype="long",
                                   value=0, truncating="post", padding="post")
         return input_token_seq
 
     def get_dataloaders(self):
+        # load dataset
         dataset, labels = self.load_data_from_csv()
+        # tokenize data
         input_token_seq = self.tokenize_and_pad_data(dataset)
         # create attention masks
         attention_masks = []
@@ -37,6 +42,7 @@ class Dataloaders:
         # train test split data
         train_inputs, val_inputs, train_labels, val_labels = \
             train_test_split(input_token_seq, labels, random_state=42, test_size=0.1)
+        # split mask with same random state
         train_masks, val_masks, _, _ = train_test_split(attention_masks, labels, random_state=42, test_size=0.1)
         # Create the DataLoader for our training set
         train_data = TensorDataset(tensor(train_inputs), tensor(train_masks), tensor(train_labels))
@@ -47,12 +53,3 @@ class Dataloaders:
         val_sampler = SequentialSampler(val_data)
         val_dataloader = DataLoader(val_data, sampler=val_sampler, batch_size=self.batch_size)
         return train_dataloader,val_dataloader
-
-
-
-
-
-
-
-
-

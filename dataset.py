@@ -67,7 +67,9 @@ class Dataset:
         text = text.split()
         processed_text = []
         for word in text:
-            if self.is_valid_word(word) and word not in self.stop_words:  # remove invalid word and stop words
+            # check if word is valid
+            if self.is_valid_word(word):
+                # remove invalid word and stop words
                 word = str(self.porter_stemmer.stem(word))
                 processed_text.append(word)
         return str(' '.join(processed_text))
@@ -80,6 +82,7 @@ class Dataset:
             processed_text = self.preprocess(raw_data['text'][i])
             if self.isTrainFile:
                 lbl = raw_data['airline_sentiment'][i].lower()
+                # skip labels that are not in proper format
                 if lbl =='negative' or lbl =='positive':
                     data = dict()
                     data['text'] = processed_text
@@ -90,6 +93,7 @@ class Dataset:
                 data['text'] = processed_text
                 processed_data.append(data)
         try:
+            # open new csv file and write processed data
             with open('processed_data.csv', 'w') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=list(data.keys()))
                 writer.writeheader()

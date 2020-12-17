@@ -1,0 +1,89 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "Api documentation for sentiment analysis project",
+    "version": "1.0.0",
+    "title": "Sentiment Analysis Api",
+    "termsOfService": "http://swagger.io/terms/",
+    "contact": {
+      "email": "agni.abhi00@gmail.com"
+    }
+  },
+  "host": "localhost:6543",
+  "basePath": "/",
+  "tags": [
+    {
+      "name": "predict_sentiment",
+      "description": "Sentiment analysis"
+    }
+  ],
+  "schemes": [
+    "http"
+  ],
+  "paths": {
+    "/predict_sentiment": {
+      "post": {
+        "tags": [
+          "predict_sentiment"
+        ],
+        "summary": "Predict Sentiment",
+        "operationId": "predict_sentiment",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Text from which want to predict sentiment",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/predict_req"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ok",
+            "schema": {
+              "$ref": "#/definitions/predict_resp"
+            }
+          },
+          "404": {
+            "description": "server not found"
+          },
+          "405": {
+            "description": "Invalid input"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "predict_req": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        }
+      },
+      "xml": {
+        "name": "predict_req"
+      }
+    },
+    "predict_resp": {
+      "type": "object",
+      "properties": {
+        "output": {
+          "type": "string"
+        }
+      },
+      "xml": {
+        "name": "predict_resp"
+      }
+    }
+  }
+}

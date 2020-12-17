@@ -15,7 +15,7 @@ export default function App() {
       text
     }
     axios.post(
-      "http://127.0.0.1:6543/get_data", 
+      "http://127.0.0.1:6543/predict_sentiment", 
        JSON.stringify(j_data)
       ).then(resp => {
         setOut(resp.data.output);
