@@ -8,6 +8,7 @@ from utils import *
 import dataset
 from transformers import BertTokenizer
 from keras.preprocessing.sequence import pad_sequences
+import matplotlib.pyplot as plt
 # Use the 12-layer BERT model with binary class
 class Model:
     def __init__(self):
@@ -25,6 +26,29 @@ class Model:
         # max input sequence length
         self.MAX_LEN = 46
 
+    def plot_model_history(self, t_loss, v_loss, t_acc, v_acc):
+        plt.figure()
+        plt.plot(range(len(t_loss)), t_loss)
+        plt.plot(range(len(t_loss)), v_loss)
+        plt.title('model loss')
+        plt.ylabel('loss')
+        plt.xlabel('epoch')
+        plt.legend(['train', 'val'])
+        plt.savefig('Loss.png')
+        plt.show()
+
+        plt.figure()
+        plt.plot(range(len(t_acc)), t_acc)
+        plt.plot(range(len(v_acc)), v_acc)
+        plt.title('model accuracy')
+        plt.ylabel('accuracy')
+        plt.xlabel('epoch')
+        plt.legend(['train', 'val'])
+        plt.savefig('Accuracy.png')
+        plt.show()
+
+
+
     def train(self,epochs = 4):
         train_dataloader, val_dataloader = self.dataloaders.get_dataloaders()
         # use AdamW optimizer for training
@@ -40,10 +64,15 @@ class Model:
         torch.manual_seed(seed_val)
         torch.cuda.manual_seed_all(seed_val)
         loss_values = []
+        train_acc = []
+        val_acc = []
+        train_loss = []
+        val_loss = []
         for epoch_i in range(0, epochs):
             # store starting time
             start = time.time()
             total_loss = 0
+            total_train_accuracy = 0
             # set model in training model as model behave different in evaluation and training mode
             self.model.train()
             for step, batch in enumerate(train_dataloader):
@@ -58,8 +87,7 @@ class Model:
                 # clear gradients
                 self.model.zero_grad()
                 # feed froward model
-                outputs = self.model(input_ids, token_type_ids=None, attention_mask=input_mask,
-                                labels=labels)
+                outputs = self.model(input_ids, token_type_ids=None, attention_mask=input_mask, labels=labels)
                 loss = outputs[0]
                 # accumulate loss
                 total_loss += loss.item()
@@ -68,29 +96,34 @@ class Model:
                 clip_grad_norm_(self.model.parameters(), 1.0)
                 optimizer.step()
                 scheduler.step()
+                total_train_accuracy += accuracy(outputs[1].detach().cpu().numpy(), labels.cpu().numpy())
 
             avg_train_loss = total_loss / len(train_dataloader)
             loss_values.append(avg_train_loss)
             print("\n\n val")
             start = time.time()
             self.model.eval()
-            eval_loss, eval_accuracy = 0, 0
-            nb_eval_steps, nb_eval_examples = 0, 0
+            total_val_loss = 0
+            total_val_accuracy = 0
             for batch in val_dataloader:
                 batch = tuple(t.to(self.device) for t in batch)
                 input_ids, input_mask, labels = batch
                 with torch.no_grad():
-                    outputs = self.model(input_ids, token_type_ids=None, attention_mask=input_mask)
-                logits = outputs[0]
-                logits = logits.detach().cpu().numpy()
-                label_ids = labels.to('cpu').numpy()
+                    outputs = self.model(input_ids, token_type_ids=None, attention_mask=input_mask, labels=labels)
+                loss = outputs[0]
+                total_val_loss += loss.item()
                 # calculate accuracy
-                tmp_eval_accuracy = accuracy(logits, label_ids)
-                eval_accuracy += tmp_eval_accuracy
-                nb_eval_steps += 1
-            print("  Accuracy: {0:.2f}".format(eval_accuracy / nb_eval_steps))
+                total_val_accuracy += accuracy(outputs[1].detach().cpu().numpy(), labels.cpu().numpy())
+
+            # store matrix
+            train_acc.append(total_train_accuracy/len(train_dataloader))
+            val_acc.append(total_val_accuracy/len(val_dataloader))
+            train_loss.append(total_loss/len(train_dataloader))
+            val_loss.append(total_val_loss/len(val_dataloader))
+            print("  Accuracy: {0:.2f}".format(total_val_accuracy / len(val_dataloader)))
             print("  val took: {:}".format(format_time(time.time() - start)))
             print("")
+        self.plot_model_history(train_loss,val_loss,train_acc,val_acc)
         print("Training complete!")
 
 
